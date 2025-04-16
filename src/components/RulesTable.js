@@ -17,7 +17,8 @@ function RulesTable() {
   const [filterOptions, setFilterOptions] = useState({});
   const [editingRule, setEditingRule] = useState(null);
   const [isAddingRule, setIsAddingRule] = useState(false);
-  const [isWriteAccess, setIsWriteAccess] = useState(false); // Simulated access control
+  const [isWriteAccess, setIsWriteAccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load initial data
   useEffect(() => {
@@ -28,10 +29,13 @@ function RulesTable() {
   // Load rules from service
   const loadRules = async () => {
     try {
+      setIsLoading(true);
       const rulesData = await ruleService.getRules();
       setRules(rulesData);
     } catch (error) {
       console.error('Error loading rules:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -94,7 +98,7 @@ function RulesTable() {
       } else {
         await ruleService.updateRule(ruleData);
       }
-      loadRules(); // Reload rules after save
+      loadRules();
       setEditingRule(null);
       setIsAddingRule(false);
     } catch (error) {
@@ -122,23 +126,43 @@ function RulesTable() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="rules-table-container">
-      <div className="table-actions">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center gap-4 flex-wrap">
         {isWriteAccess && (
-          <button onClick={handleAddRule} className="add-rule-button">
+          <button
+            onClick={handleAddRule}
+            className="btn btn-primary flex items-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
             Add New Rule
           </button>
         )}
-        <button onClick={handleExtractData} className="extract-data-button">
+        <button
+          onClick={handleExtractData}
+          className="btn btn-secondary flex items-center gap-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
           Extract Data
         </button>
       </div>
 
-      <div className="filters-container">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {TABLE_FIELDS.map(field => (
-          <div key={field} className="filter-field">
-            <label>{field}</label>
+          <div key={field} className="space-y-1">
+            <label className="form-label">{field}</label>
             <FilterDropdown
               options={filterOptions[field] || []}
               value={filters[field]}
@@ -149,29 +173,42 @@ function RulesTable() {
         ))}
       </div>
 
-      <div className="table-wrapper">
-        <table className="rules-table">
+      <div className="overflow-x-auto rounded-lg border border-borderColor shadow bg-white">
+        <table className="min-w-full divide-y divide-borderColor">
           <thead>
-            <tr>
+            <tr className="bg-gray-50">
               {TABLE_FIELDS.map(field => (
-                <th key={field}>{field}</th>
+                <th
+                  key={field}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  {field}
+                </th>
               ))}
-              {isWriteAccess && <th>Actions</th>}
+              {isWriteAccess && (
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              )}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="bg-white divide-y divide-borderColor">
             {getFilteredRules().map(rule => (
-              <tr key={rule.id}>
+              <tr key={rule.id} className="hover:bg-gray-50 transition-colors">
                 {TABLE_FIELDS.map(field => (
-                  <td key={field}>{rule[field]}</td>
+                  <td key={field} className="px-6 py-4 whitespace-nowrap text-sm">
+                    {rule[field]}
+                  </td>
                 ))}
                 {isWriteAccess && (
-                  <td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button
                       onClick={() => handleEditRule(rule)}
-                      className="edit-button"
+                      className="text-primary hover:text-secondary transition-colors"
                     >
-                      Edit
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                      </svg>
                     </button>
                   </td>
                 )}
